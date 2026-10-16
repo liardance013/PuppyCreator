@@ -1,59 +1,44 @@
-
-name: Build PuppyCreator APK
-
+name: Build PuppyCreator 2 APK
 on:
   workflow_dispatch:
-
 jobs:
   build:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Unzip source
-        run: unzip -q PuppyCreator-GitHub-build.zip
-
-      - name: Set up Java
+      - name: Extract v2 source
+        run: unzip -q -o PuppyCreator2-source.zip -d v2
+      - name: Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-
-      - name: Set up Gradle
+      - name: Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
-
-      - name: Install Android SDK
+      - name: Android command line tools
         shell: bash
         run: |
           set -e
           export ANDROID_HOME="${ANDROID_HOME:-$HOME/android-sdk}"
           mkdir -p "$ANDROID_HOME/cmdline-tools"
-          curl -fL --retry 3 \
-            https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip \
-            -o /tmp/android-tools.zip
+          curl -fL --retry 3 https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o /tmp/android-tools.zip
           unzip -q /tmp/android-tools.zip -d /tmp/android-cli
           mv /tmp/android-cli/cmdline-tools "$ANDROID_HOME/cmdline-tools/latest"
           echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
           echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
-            "platforms;android-35" \
-            "build-tools;35.0.0" \
-            "platform-tools"
-
-      - name: Build APK
-        working-directory: PuppyCreator
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-35' 'build-tools;35.0.0' 'platform-tools'
+      - name: Compile APK
+        working-directory: v2/PuppyCreator2
         run: gradle --no-daemon assembleDebug
-
-      - name: Upload APK
+      - name: Publish APK
         uses: actions/upload-artifact@v4
         with:
-          name: PuppyCreator-APK
-          path: PuppyCreator/app/build/outputs/apk/debug/app-debug.apk
+          name: PuppyCreator-v2-APK
+          path: v2/PuppyCreator2/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
