@@ -7,15 +7,17 @@ on:
 jobs:
   build:
     runs-on: ubuntu-24.04
+
     permissions:
       contents: read
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Extract v3 source
-        run: unzip -q -o PuppyCreator-3.0-Android-source.zip -d v3
+      - name: Extract PuppyCreator 3 source
+        run: |
+          unzip -q -o PuppyCreator-3.0-Android-source.zip -d v3
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -24,9 +26,33 @@ jobs:
           java-version: '17'
 
       - name: Install Android SDK packages
+        shell: bash
         run: |
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+          set -e
+
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+
+          if [ ! -x "$SDKMANAGER" ]; then
+            mkdir -p "$ANDROID_HOME/cmdline-tools"
+
+            curl -fL --retry 3 \
+              https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip \
+              -o /tmp/android-tools.zip
+
+            mkdir -p /tmp/android-cli
+
+            unzip -q /tmp/android-tools.zip -d /tmp/android-cli
+
+            mv /tmp/android-cli/cmdline-tools \
+              "$ANDROID_HOME/cmdline-tools/latest"
+          fi
+
+          yes | "$SDKMANAGER" --licenses || true
+
+          "$SDKMANAGER" \
+            "platforms;android-35" \
+            "build-tools;35.0.0" \
+            "platform-tools"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -35,7 +61,8 @@ jobs:
 
       - name: Compile APK
         working-directory: v3
-        run: gradle :app:assembleDebug --no-daemon
+        run: |
+          gradle :app:assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
