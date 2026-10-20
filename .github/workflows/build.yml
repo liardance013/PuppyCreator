@@ -1,5 +1,5 @@
 
-name: Build PuppyCreator 3.1 APK
+name: Build PuppyCreator 3.2 APK
 
 on:
   workflow_dispatch:
@@ -15,9 +15,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Extract PuppyCreator 3.1 source
+      - name: Extract PuppyCreator 3.2
         run: |
-          unzip -q -o PuppyCreator-3.1-icon-source-retry.zip -d v3
+          mkdir -p v3
+          unzip -q -o PuppyCreator-3.2-new-icon.zip -d v3
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -25,7 +26,7 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Install Android SDK packages
+      - name: Install Android SDK
         shell: bash
         run: |
           set -e
@@ -40,7 +41,6 @@ jobs:
               -o /tmp/android-tools.zip
 
             mkdir -p /tmp/android-cli
-
             unzip -q /tmp/android-tools.zip -d /tmp/android-cli
 
             mv /tmp/android-cli/cmdline-tools \
@@ -67,6 +67,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: PuppyCreator-3.1-APK
+          name: PuppyCreator-3.2-New-Icon-APK
           path: v3/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
